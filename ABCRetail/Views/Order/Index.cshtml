@@ -1,0 +1,51 @@
+﻿@model IEnumerable<string>
+
+@{
+    ViewData["Title"] = "Order Queue";
+}
+
+<div class="d-flex justify-content-between mb-3">
+
+    <h2>Azure Queue Messages</h2>
+
+    <a asp-action="Create"
+       class="btn btn-primary">
+        Process New Order
+    </a>
+
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["SuccessMessage"]
+    </div>
+}
+
+@if (Model != null && Model.Any())
+{
+    <table class="table table-bordered">
+
+        <thead class="table-dark">
+            <tr>
+                <th>Queue Message</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var message in Model)
+            {
+                <tr>
+                    <td>@message</td>
+                </tr>
+            }
+        </tbody>
+
+    </table>
+}
+else
+{
+    <div class="alert alert-info">
+        No messages are currently stored in the Azure Queue.
+    </div>
+}
