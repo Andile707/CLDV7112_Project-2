@@ -16,6 +16,11 @@ builder.Services.AddSingleton<IQueueStorageService,
 builder.Services.AddSingleton<IFileStorageService,
     FileStorageService>();
 
+builder.Services.AddHttpClient();
+
+builder.Services.AddScoped<EventHubService>();
+builder.Services.AddScoped<ServiceBusService>();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())

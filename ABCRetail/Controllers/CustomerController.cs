@@ -1,6 +1,7 @@
 ﻿using ABCRetail.Models;
 using ABCRetail.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Http.Json;
 
 namespace ABCRetail.Controllers
 {
@@ -8,13 +9,16 @@ namespace ABCRetail.Controllers
     {
         private readonly ITableStorageService _tableStorageService;
         private readonly ILogger<CustomerController> _logger;
+        private readonly HttpClient _httpClient;
 
         public CustomerController(
             ITableStorageService tableStorageService,
-            ILogger<CustomerController> logger)
+            ILogger<CustomerController> logger,
+            IHttpClientFactory httpClientFactory)
         {
             _tableStorageService = tableStorageService;
             _logger = logger;
+            _httpClient = httpClientFactory.CreateClient();
         }
 
         [HttpGet]
@@ -58,13 +62,39 @@ namespace ABCRetail.Controllers
 
             try
             {
-                customer.PartitionKey = "Customer";
-                customer.RowKey = Guid.NewGuid().ToString();
+                var functionRequest = new
+                {
+                    firstName = customer.FirstName,
+                    lastName = customer.LastName,
+                    email = customer.Email,
+                    phoneNumber = customer.PhoneNumber,
+                    address = customer.Address
+                };
 
-                await _tableStorageService.AddCustomerAsync(customer);
+                HttpResponseMessage response =
+                    await _httpClient.PostAsJsonAsync(
+                        "http://localhost:7058/api/StoreCustomer",
+                        functionRequest);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string error =
+                        await response.Content.ReadAsStringAsync();
+
+                    _logger.LogError(
+                        "StoreCustomerFunction returned {StatusCode}. Response: {Error}",
+                        response.StatusCode,
+                        error);
+
+                    ModelState.AddModelError(
+                        string.Empty,
+                        "The customer could not be saved.");
+
+                    return View(customer);
+                }
 
                 TempData["SuccessMessage"] =
-                    "The customer profile was created successfully.";
+                    "The customer profile was created successfully using Azure Functions.";
 
                 return RedirectToAction(nameof(Index));
             }
@@ -72,7 +102,7 @@ namespace ABCRetail.Controllers
             {
                 _logger.LogError(
                     exception,
-                    "An error occurred while creating a customer.");
+                    "An error occurred while calling StoreCustomerFunction.");
 
                 ModelState.AddModelError(
                     string.Empty,
